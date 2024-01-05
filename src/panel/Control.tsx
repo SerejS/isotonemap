@@ -2,15 +2,15 @@ import React from "react";
 
 export class Control extends React.Component <
     {
-        size: number, started: boolean,
-        resize: (v: number) => void,
-        stop: () => void, start: () => void, reset: () => void
+        size: number,
+        resize: (v: number) => void, start: () => void, reset: () => void
     },
     { size: number }> {
 
     constructor(props: any) {
         super(props);
         this.state = {size: this.props.size};
+
         this.resize = this.resize.bind(this);
         this.setSize = this.setSize.bind(this);
     }
@@ -43,9 +43,7 @@ export class Control extends React.Component <
                 </div>
                 <div className="field is-grouped">
                     <div className="control">
-                        {(this.props.started) ?
-                            <button onClick={this.props.stop} className="button is-danger">Стоп</button> :
-                            <button onClick={this.props.start} className="button is-primary">Старт</button>}
+                        <button onClick={this.props.start} className="button is-primary">Старт</button>
                     </div>
                     <div className="control">
                         <button onClick={this.props.reset} className="button is-info">Сброс</button>

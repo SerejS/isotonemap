@@ -11,7 +11,7 @@ echarts.use([GraphChart, TooltipComponent, TitleComponent, GridComponent, Legend
 
 
 export class DiagramView extends React.Component<
-    { connections: number[][] | undefined }, { connections: number[][] | undefined }> {
+    { connections: number[][] }, { }> {
 
     chartRef: RefObject<HTMLDivElement>;
     chart?: echarts.ECharts;
@@ -19,9 +19,6 @@ export class DiagramView extends React.Component<
     constructor(props: any) {
         super(props);
         this.chartRef = React.createRef();
-        this.setState({
-            connections: props.connections
-        })
     }
 
     componentDidMount() {
@@ -40,9 +37,32 @@ export class DiagramView extends React.Component<
 
     initChart = () => {
         if (!this.chartRef.current) return;
+        this.chart?.dispose();
         this.chart = echarts.init(this.chartRef.current);
 
-        const options: EChartsOption = {
+
+        let connections = this.props.connections;
+
+        let node_data = [];
+        let node_cons = [];
+
+        let height_px = 1500;
+        let width_px = 1000;
+        let width_gap = width_px / connections.length;
+
+        let pos_px = width_gap;
+        for (let i = 0; i < connections.length; i++) {
+            node_data.push({name: i + 1, x: pos_px, y: i * 100 % 300});
+            pos_px += width_gap;
+        }
+
+        for (let i = 0; i < connections.length; i++) {
+            for (let j = 0; j < connections.length; j++) {
+                if (connections[i][j]) node_cons.push({source: i, target: j});
+            }
+        }
+
+        const standartOptions: EChartsOption = {
             title: {
                 text: 'Диаграмма УМ'
             },
@@ -59,23 +79,8 @@ export class DiagramView extends React.Component<
                     label: {show: true},
                     edgeSymbol: ['circle'],
                     edgeSymbolSize: [1, 10],
-                    data: [
-                        {name: 1, x: 550, y: 1300},
-                        {name: 2, x: 550, y: 1100},
-                        {name: 3, x: 550, y: 900},
-                        {name: 4, x: 550, y: 700},
-                        {name: 5, x: 1000, y: 300},
-                        {name: 6, x: 300, y: 300},
-                        {name: 7, x: 550, y: 100}
-                    ],
-                    links: [
-                        {source: 0, target: 3},
-                        {source: 0, target: 1},
-                        {source: 0, target: 1},
-                        {source: 3, target: 4},
-                        {source: 3, target: 5},
-                        {source: 5, target: 6}
-                    ],
+                    data: node_data,
+                    links: node_cons,
                     lineStyle: {
                         opacity: 1,
                         width: 1.5,
@@ -90,12 +95,11 @@ export class DiagramView extends React.Component<
             ]
         };
 
-        if (this.chart) this.chart.setOption(options);
-
-
+        if (this.chart) this.chart.setOption(standartOptions);
     };
 
     render() {
+        this.initChart();
         return <div ref={this.chartRef} style={{width: '100%', height: '100%'}}></div>;
     }
 }

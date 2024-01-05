@@ -41,14 +41,14 @@ export class Board extends React.Component<{
         let header = [];
         for (let c = 0; c <= board[0].length; c++)
             header.push(<Cell text={c > 0 ? `a_{${c}}` : ""} row={-1} column={-c} key={-c} value={0}/>);
-        rows.push(<div className="row" key={-1}>{header}</div>);
+        rows.push(<div className="row" key={'row-1'}>{header}</div>);
 
 
         for (let r = 0; r < board.length; r++) {
             let row = [];
 
             row.push(<Cell text={`a_{${r + 1}}`} row={-1} column={-1}
-                           key={-1 * board[0].length} value={0}/>);
+                           key={-1 * board[0].length - r - 1} value={0}/>);
             for (let c = 0; c < board[0].length; c++) {
                 if (this.props.started)
                     row.push(<Cell row={r} column={c}

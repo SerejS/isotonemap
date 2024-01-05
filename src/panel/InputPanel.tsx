@@ -11,7 +11,7 @@ function new_matrix(size: Readonly<number> | number): number[][] {
 export class InputPanel extends React.Component<
     {
         size: number,
-        setNatural: Dispatch<SetStateAction<never[]>>,
+        setNatural: Dispatch<SetStateAction<number[]>>
         setConnections: Dispatch<SetStateAction<number[][]>>
     },
     { started: boolean, size: number, board: number[][] }> {
@@ -28,6 +28,7 @@ export class InputPanel extends React.Component<
         this.resize = this.resize.bind(this);
         this.update = this.update.bind(this);
         this.onClick = this.onClick.bind(this);
+        this.props.setConnections(this.state.board);
     }
 
     start() {
@@ -62,7 +63,10 @@ export class InputPanel extends React.Component<
     }
 
 
-    update() {}
+    update() {
+        let updated = new_matrix(this.state.size);
+        this.setState({ board: updated });
+    }
 
     onClick(row: number, column: number) {
         let board = this.state.board;

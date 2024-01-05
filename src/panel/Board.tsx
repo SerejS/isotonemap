@@ -11,9 +11,12 @@ class Cell extends React.Component<{
     render() {
         let row: number = this.props.row;
         let column: number = this.props.column;
+
+        let type = ['', 'clicked', 'blocked'];
+
         return (
             <div key={String(row) + " " + String(column)}
-                 className={"cell" + ((this.props.value === 1) ? " clicked" : "")}
+                 className={"cell " + type[this.props.value]}
                  onClick={() => {
                      if (this.props.onClick!) this.props.onClick!(row, column)
                  }}>
@@ -53,6 +56,6 @@ export class Board extends React.Component<{
             rows.push(<div className="row" key={r}>{row}</div>);
         }
 
-        return <div className="board"> {rows} </div>
+        return <div className="board"> {rows} </div>;
     }
 }

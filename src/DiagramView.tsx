@@ -11,7 +11,7 @@ echarts.use([GraphChart, TooltipComponent, TitleComponent, GridComponent, Legend
 
 
 export class DiagramView extends React.Component<
-    { connections: number[][] }, { }> {
+    { connections: number[][], item_levels: number[], item_children: number[][] }, {}> {
 
     chartRef: RefObject<HTMLDivElement>;
     chart?: echarts.ECharts;
@@ -46,21 +46,39 @@ export class DiagramView extends React.Component<
         let node_data = [];
         let node_cons = [];
 
-        let height_px = 1500;
-        let width_px = 1000;
-        let width_gap = width_px / connections.length;
+        let height_px = 2300;
+        let width_px = 2300;
 
-        let pos_px = width_gap;
-        for (let i = 0; i < connections.length; i++) {
-            node_data.push({name: i + 1, x: pos_px, y: i * 100 % 300});
-            pos_px += width_gap;
-        }
+        let levelCounts = Math.max(...this.props.item_levels);
+        let height_gap = height_px / (levelCounts + 1);
+        for (let k = 0; k < connections.length; k++) {
+            let elements = [];
+            for (let i = 0; i < this.props.item_levels.length; i++) {
+                if (this.props.item_levels[i] === k) elements.push(i);
+            }
+            if (elements.length === 0) continue;
 
-        for (let i = 0; i < connections.length; i++) {
-            for (let j = 0; j < connections.length; j++) {
-                if (connections[i][j]) node_cons.push({source: i, target: j});
+            let width_gap = width_px / (elements.length + 1);
+
+            for (let i = 0; i < elements.length; i++) {
+                node_data.push({
+                    name: String(elements[i] + 1),
+                    x: (i + 1) * width_gap,
+                    y: height_px - (k + 1) * height_gap
+                });
             }
         }
+
+        // Connect related nodes
+        for (let i = 0; i < connections.length; i++) {
+            for (let j = 0; j < connections.length; j++) {
+                if (connections[i][j] === 1)
+                    node_cons.push({source: String(i + 1), target: String(j + 1)});
+            }
+        }
+
+        // console.log(node_data);
+        // console.log(node_cons);
 
         const standartOptions: EChartsOption = {
             title: {

@@ -4,7 +4,9 @@ import {DiagramView} from "./DiagramView";
 import {MathComponent} from "mathjax-react";
 
 export function new_matrix(size: Readonly<number> | number): number[][] {
-    return Array.from(Array(size), () => new Array(size).fill(0))
+    let arr = Array.from(Array(size), () => new Array(size).fill(0));
+    for (let i = 0; i < arr.length; i++) arr[i][i] = 2;
+    return arr;
 }
 
 class App extends React.Component<any, any> {
@@ -14,6 +16,8 @@ class App extends React.Component<any, any> {
         this.state = {
             size: 10,
             connections: new_matrix(10),
+            item_levels: new Array(10).fill(0),
+            item_children: new Array(10).fill([]),
         };
 
         this.setConnections = this.setConnections.bind(this);
@@ -34,6 +38,10 @@ class App extends React.Component<any, any> {
 
     reset() {
         this.setConnections(new_matrix(this.state.size));
+        this.setState({
+            item_levels: new Array(this.state.size),
+            item_children: new Array(this.state.size).fill([]),
+        });
     }
 
     resize(size: number) {
@@ -45,17 +53,51 @@ class App extends React.Component<any, any> {
 
         this.setState({
             size: size,
-            connections: new_matrix(size)
+            connections: new_matrix(size),
+            item_levels: new Array(size).fill(0),
+            item_children: new Array(size).fill([]),
         });
     }
 
     onClick(row: number, column: number) {
         //TODO: Validation
-        if (row == column) return;
+        if (row === column) return;
 
         let board = this.state.connections;
         board[row][column] = (board[row][column] === 0) ? 1 : 0;
-        this.setState({connections: board});
+
+        // Block symmetric
+        if (board[row][column] === 1) board[column][row] = 2;
+        else board[column][row] = 0;
+
+        /*let triangles = []
+        for (let i = 0; i < board.length; i++)
+            if (board[i][column]) triangles.push(i);
+        // for (let i = 0; i < board.length; i++)
+        //     if (board[row][i]) triangles.push(i);
+
+        for (let i = 0; i < triangles.length; i++) {
+            for (let j = 1; j < triangles.length; j++) {
+                board[triangles[i]][triangles[j]] = 2;
+            }
+        }*/
+
+        // Restructure diagram
+        let levels = [...this.state.item_levels];
+        let children = [...this.state.item_children];
+
+        const index: number = children[column].indexOf(row);
+        if (index !== -1) children[column].splice(index, 1);
+        else children[column] = [...children[column], row];
+
+        let childrenLevels = children[column].map((element: number) => levels[element]);
+        levels[column] = children[column].length ? Math.max(...childrenLevels) + 1 : 0;
+
+        this.setState({
+            connections: board,
+            item_levels: levels,
+            item_children: children,
+        });
     }
 
 
@@ -75,7 +117,10 @@ class App extends React.Component<any, any> {
                         />
                     </div>
                     <div className={"column"}>
-                        <DiagramView connections={this.state.connections}/>
+                        <DiagramView
+                            item_children={this.state.item_children}
+                            item_levels={this.state.item_levels}
+                            connections={this.state.connections}/>
                     </div>
                 </div>
 

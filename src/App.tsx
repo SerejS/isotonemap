@@ -2,6 +2,8 @@ import React from 'react';
 import {InputPanel} from "./panel/InputPanel";
 import {DiagramView} from "./DiagramView";
 import {MathComponent} from "mathjax-react";
+import {Simulate} from "react-dom/test-utils";
+import reset = Simulate.reset;
 
 export function new_matrix(size: Readonly<number> | number): number[][] {
     let arr = Array.from(Array(size), () => new Array(size).fill(0));
@@ -60,38 +62,34 @@ class App extends React.Component<any, any> {
     }
 
     onClick(row: number, column: number) {
-        //TODO: Validation
-        if (row === column) return;
+        let board: number[][] = [];
+        for (let i = 0; i < this.state.connections.length; i++)
+            board[i] = this.state.connections[i].slice();
 
-        let board = this.state.connections;
-        board[row][column] = (board[row][column] === 0) ? 1 : 0;
+        // Ignore locked cells
+        if (board[row][column] === 2) return;
 
-        // Block symmetric
-        if (board[row][column] === 1) board[column][row] = 2;
-        else board[column][row] = 0;
+        // Diagram View properties
+        let levels: number[] = [...this.state.item_levels];
+        let children: number[][] = [...this.state.item_children];
+        if (board[row][column] !== 0) {
+            levels = new Array(this.state.size);
+            children = new Array(this.state.size).fill([]);
+        }
 
-        /*let triangles = []
-        for (let i = 0; i < board.length; i++)
-            if (board[i][column]) triangles.push(i);
-        // for (let i = 0; i < board.length; i++)
-        //     if (board[row][i]) triangles.push(i);
-
-        for (let i = 0; i < triangles.length; i++) {
-            for (let j = 1; j < triangles.length; j++) {
-                board[triangles[i]][triangles[j]] = 2;
+        // if: create new connection, else: remove ex-connection
+        if (board[row][column] === 0) this.onSelect(row, column, board, levels, children);
+        else {
+            let new_board = new_matrix(board.length);
+            for (let i = 0; i < board.length; i++) {
+                for (let j = 0; j < board.length; j++) {
+                    if (i === row && j === column) continue;
+                    if (board[i][j] === 1)
+                        this.onSelect(i, j, new_board, levels, children);
+                }
             }
-        }*/
-
-        // Restructure diagram
-        let levels = [...this.state.item_levels];
-        let children = [...this.state.item_children];
-
-        const index: number = children[column].indexOf(row);
-        if (index !== -1) children[column].splice(index, 1);
-        else children[column] = [...children[column], row];
-
-        let childrenLevels = children[column].map((element: number) => levels[element]);
-        levels[column] = children[column].length ? Math.max(...childrenLevels) + 1 : 0;
+            board = new_board;
+        }
 
         this.setState({
             connections: board,
@@ -100,6 +98,78 @@ class App extends React.Component<any, any> {
         });
     }
 
+    onSelect(row: number, column: number, board: number[][], levels: number[], children: number[][]) {
+        board[row][column] = (board[row][column] === 0) ? 1 : 0;
+
+        // (Un)Lock symmetric
+        if (board[row][column] === 1) board[column][row] = 2;
+        else board[column][row] = 0;
+
+        if (!board[row][column]) return;
+
+        // Lock triangles
+        for (let i = 0; i < board.length; i++) {
+            // Hint: current parent - column
+            if (board[i][column] === 1) {
+                for (let j = 0; j < board.length; j++) {
+                    if (board[j][column] !== 1 || i === j) continue;
+                    board[i][j] = 2;
+                }
+            }
+
+            // Hint: current child - row
+            if (board[row][i] === 1) {
+                for (let j = 0; j < board.length; j++) {
+                    if (board[row][j] !== 1 || i === j) continue;
+                    board[i][j] = 2;
+                }
+            }
+        }
+
+        // Lock cycles
+        // Lock children paths
+        let allElements: number[] = [];
+        let elementsQueue: number[] = [column];
+        while (elementsQueue.length) {
+            let element = elementsQueue[0];
+
+            for (let i = 0; i < board.length; i++) {
+                if (board[i][element] !== 1 || allElements.includes(i)) continue;
+                allElements.push(i);
+                elementsQueue.push(i);
+                if (board[column][i] === 0) board[column][i] = 2;
+                if (board[i][column] === 0) board[i][column] = 2;
+            }
+
+            elementsQueue.shift();
+        }
+
+        // Lock parents paths
+        allElements = [];
+        elementsQueue = [row];
+        while (elementsQueue.length) {
+            let element = elementsQueue[0];
+
+            for (let i = 0; i < board.length; i++) {
+                if (board[element][i] !== 1 || allElements.includes(i)) continue;
+                allElements.push(i);
+                elementsQueue.push(i);
+                if (board[row][i] === 0) board[row][i] = 2;
+                if (board[i][row] === 0) board[i][row] = 2;
+            }
+
+            elementsQueue.shift();
+        }
+
+
+        // Restructure diagram
+        const index: number = children[column].indexOf(row);
+        if (index !== -1) children[column].splice(index, 1);
+        else children[column] = [...children[column], row];
+
+        let childrenLevels = children[column].map((element: number) => levels[element]);
+        levels[column] = children[column].length ? Math.max(...childrenLevels) + 1 : 0;
+    }
 
     render() {
         return (

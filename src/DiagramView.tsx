@@ -11,7 +11,7 @@ echarts.use([GraphChart, TooltipComponent, TitleComponent, GridComponent, Legend
 
 
 export class DiagramView extends React.Component<
-    { connections: number[][], item_levels: number[], item_children: number[][] }, {}> {
+    { connections: number[][], item_levels: number[] }, {}> {
 
     chartRef: RefObject<HTMLDivElement>;
     chart?: echarts.ECharts;
@@ -44,7 +44,7 @@ export class DiagramView extends React.Component<
         let connections = this.props.connections;
 
         let node_data = [];
-        let node_cons = [];
+        let node_cons: any[] = [];
 
         let height_px = 2300;
         let width_px = 2300;
@@ -73,7 +73,7 @@ export class DiagramView extends React.Component<
         for (let i = 0; i < connections.length; i++) {
             for (let j = 0; j < connections.length; j++) {
                 if (connections[i][j] === 1)
-                    node_cons.push({source: String(i + 1), target: String(j + 1)});
+                    node_cons.push({source: String(j + 1), target: String(i + 1)});
             }
         }
 

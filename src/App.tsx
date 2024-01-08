@@ -2,6 +2,7 @@ import React from 'react';
 import {InputPanel} from "./panel/InputPanel";
 import {DiagramView} from "./DiagramView";
 import {MathComponent} from "mathjax-react";
+import {get_sorted_set_map} from "./module/algorithm";
 
 export function new_matrix(size: Readonly<number> | number): number[][] {
     let arr = Array.from(Array(size), () => new Array(size).fill(0));
@@ -33,7 +34,11 @@ class App extends React.Component<any, any> {
 
     start() {
         try {
-            let result = this.stub(this.state.connections);
+            let tempConnections: number[][] = [];
+            this.state.connections.forEach((row: number[]) => tempConnections.push([...row]));
+            tempConnections = tempConnections.map(row => row.map(cell => cell === 2 ? 0 : cell));
+
+            let result = get_sorted_set_map(tempConnections);
             this.setState({
                 item_mapping: result.map(num => String(num))
             });

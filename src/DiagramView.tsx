@@ -11,7 +11,7 @@ echarts.use([GraphChart, TooltipComponent, TitleComponent, GridComponent, Legend
 
 
 export class DiagramView extends React.Component<
-    { connections: number[][], item_levels: number[], item_children: number[][] }, {}> {
+    { connections: number[][], item_levels: number[] }, {}> {
 
     chartRef: RefObject<HTMLDivElement>;
     chart?: echarts.ECharts;

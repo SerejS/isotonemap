@@ -17,7 +17,6 @@ class App extends React.Component<any, any> {
             size: 10,
             connections: new_matrix(10),
             item_levels: new Array(10).fill(0),
-            item_children: new Array(10).fill([]),
             item_mapping: new Array(10).fill('?'),
         };
 
@@ -53,7 +52,6 @@ class App extends React.Component<any, any> {
         this.setConnections(new_matrix(this.state.size));
         this.setState({
             item_levels: new Array(this.state.size).fill(0),
-            item_children: new Array(this.state.size).fill([]),
             item_mapping: new Array(this.state.size).fill('?'),
         });
     }
@@ -70,7 +68,6 @@ class App extends React.Component<any, any> {
             size: size,
             connections: new_matrix(size),
             item_levels: new Array(size).fill(0),
-            item_children: new Array(size).fill([]),
             item_mapping: new Array(size).fill('?'),
         });
     }
@@ -86,21 +83,17 @@ class App extends React.Component<any, any> {
 
         // Diagram View properties
         let levels: number[] = [...this.state.item_levels];
-        let children: number[][] = [...this.state.item_children];
-        if (board[row][column] !== 0) {
-            levels = new Array(this.state.size).fill(0);
-            children = new Array(this.state.size).fill([]);
-        }
+        if (board[row][column] !== 0) levels = new Array(this.state.size).fill(0);
 
         // if: create new connection, else: remove ex-connection
-        if (board[row][column] === 0) this.onSelect(row, column, board, levels, children);
+        if (board[row][column] === 0) this.onSelect(row, column, board, levels);
         else {
             let new_board = new_matrix(board.length);
             for (let i = 0; i < board.length; i++) {
                 for (let j = 0; j < board.length; j++) {
                     if (i === row && j === column) continue;
                     if (board[i][j] === 1)
-                        this.onSelect(i, j, new_board, levels, children);
+                        this.onSelect(i, j, new_board, levels);
                 }
             }
             board = new_board;
@@ -109,12 +102,11 @@ class App extends React.Component<any, any> {
         this.setState({
             connections: board,
             item_levels: levels,
-            item_children: children,
         });
     }
 
     // Select new cell
-    onSelect(row: number, column: number, board: number[][], levels: number[], children: number[][]) {
+    onSelect(row: number, column: number, board: number[][], levels: number[]) {
         board[row][column] = (board[row][column] === 0) ? 1 : 0;
 
         // (Un)Lock symmetric
@@ -145,46 +137,63 @@ class App extends React.Component<any, any> {
         // Lock cycles
         // Lock children paths
         let allElements: number[] = [];
-        let elementsQueue: number[] = [column];
-        while (elementsQueue.length) {
-            let element = elementsQueue[0];
+        let queueElements: number[] = [column];
+        while (queueElements.length) {
+            let element = queueElements[0];
 
             for (let i = 0; i < board.length; i++) {
                 if (board[i][element] !== 1 || allElements.includes(i)) continue;
                 allElements.push(i);
-                elementsQueue.push(i);
+                queueElements.push(i);
                 if (board[column][i] === 0) board[column][i] = 2;
                 if (board[i][column] === 0) board[i][column] = 2;
             }
 
-            elementsQueue.shift();
+            queueElements.shift();
         }
 
         // Lock parents paths
         allElements = [];
-        elementsQueue = [row];
-        while (elementsQueue.length) {
-            let element = elementsQueue[0];
+        queueElements = [row];
+        while (queueElements.length) {
+            let element = queueElements[0];
 
             for (let i = 0; i < board.length; i++) {
                 if (board[element][i] !== 1 || allElements.includes(i)) continue;
                 allElements.push(i);
-                elementsQueue.push(i);
+                queueElements.push(i);
                 if (board[row][i] === 0) board[row][i] = 2;
                 if (board[i][row] === 0) board[i][row] = 2;
             }
 
-            elementsQueue.shift();
+            queueElements.shift();
         }
 
 
         // Restructure diagram
-        const index: number = children[column].indexOf(row);
-        if (index !== -1) children[column].splice(index, 1);
-        else children[column] = [...children[column], row];
+        let getOneIndexes = (arr: number[]) =>
+            arr.map((value, index) => value === 1 ? index : -1)
+                .filter(el => el !== -1)
 
-        let childrenLevels = children[column].map((element: number) => levels[element]);
-        levels[column] = children[column].length ? Math.max(...childrenLevels) + 1 : 0;
+        let calcLevel = (parent: number) => {
+            let children = getOneIndexes(board.map(row => row[parent]))
+            if (!children) return 0;
+            return Math.max(...children.map(el => levels[el])) + 1;
+        }
+
+        let getParents = (element: number) => getOneIndexes(board[element]);
+
+        levels[column] = calcLevel(column);
+        queueElements = [...getParents(column)];
+        allElements = [...queueElements];
+        while (queueElements.length) {
+            let element = queueElements[0];
+            levels[element] = calcLevel(element);
+            let new_parents = getParents(element).filter(parent => !allElements.includes(parent));
+            queueElements = [...queueElements, ...new_parents];
+            allElements = [...allElements, ...new_parents];
+            queueElements.shift();
+        }
     }
 
     render() {
@@ -204,7 +213,6 @@ class App extends React.Component<any, any> {
                     </div>
                     <div className={"column"}>
                         <DiagramView
-                            item_children={this.state.item_children}
                             item_levels={this.state.item_levels}
                             connections={this.state.connections}/>
                     </div>

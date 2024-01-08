@@ -2,8 +2,6 @@ import React from 'react';
 import {InputPanel} from "./panel/InputPanel";
 import {DiagramView} from "./DiagramView";
 import {MathComponent} from "mathjax-react";
-import {Simulate} from "react-dom/test-utils";
-import reset = Simulate.reset;
 
 export function new_matrix(size: Readonly<number> | number): number[][] {
     let arr = Array.from(Array(size), () => new Array(size).fill(0));
@@ -20,6 +18,7 @@ class App extends React.Component<any, any> {
             connections: new_matrix(10),
             item_levels: new Array(10).fill(0),
             item_children: new Array(10).fill([]),
+            item_mapping: new Array(10).fill('?'),
         };
 
         this.setConnections = this.setConnections.bind(this);
@@ -34,18 +33,32 @@ class App extends React.Component<any, any> {
     }
 
     start() {
-        // this.setState({started: true});
+        try {
+            let result = this.stub(this.state.connections);
+            this.setState({
+                item_mapping: result.map(num => String(num))
+            });
+        } catch (e) {
+            this.setState({item_mapping: new Array(this.state.size).fill('?')});
+        }
     }
 
+    // Stub for main logic
+    stub(connections: number[][]): number[] {
+        return Array.from({length: connections.length}, () => Math.floor(Math.random() * 40));
+    }
 
+    // Reset all state values to default
     reset() {
         this.setConnections(new_matrix(this.state.size));
         this.setState({
-            item_levels: new Array(this.state.size),
+            item_levels: new Array(this.state.size).fill(0),
             item_children: new Array(this.state.size).fill([]),
+            item_mapping: new Array(this.state.size).fill('?'),
         });
     }
 
+    // Resize input board
     resize(size: number) {
         size = (isNaN(size)) ? this.props.size : Math.abs(size);
 
@@ -58,9 +71,11 @@ class App extends React.Component<any, any> {
             connections: new_matrix(size),
             item_levels: new Array(size).fill(0),
             item_children: new Array(size).fill([]),
+            item_mapping: new Array(size).fill('?'),
         });
     }
 
+    // Click on cell and redraw panel and diagram
     onClick(row: number, column: number) {
         let board: number[][] = [];
         for (let i = 0; i < this.state.connections.length; i++)
@@ -73,7 +88,7 @@ class App extends React.Component<any, any> {
         let levels: number[] = [...this.state.item_levels];
         let children: number[][] = [...this.state.item_children];
         if (board[row][column] !== 0) {
-            levels = new Array(this.state.size);
+            levels = new Array(this.state.size).fill(0);
             children = new Array(this.state.size).fill([]);
         }
 
@@ -98,6 +113,7 @@ class App extends React.Component<any, any> {
         });
     }
 
+    // Select new cell
     onSelect(row: number, column: number, board: number[][], levels: number[], children: number[][]) {
         board[row][column] = (board[row][column] === 0) ? 1 : 0;
 
@@ -194,23 +210,14 @@ class App extends React.Component<any, any> {
                     </div>
                 </div>
 
-                <ResultTable connections={this.state.connections}/>
+                <ResultTable item_mapping={this.state.item_mapping}/>
 
             </div>
         );
     }
 }
 
-class ResultTable extends React.Component <{ connections: number[][] }, { naturalMapping: any[] }> {
-
-    constructor(props: { connections: number[][] }) {
-        super(props);
-
-        this.state = {
-            naturalMapping: new Array(props.connections.length).fill('?'),
-        };
-    }
-
+class ResultTable extends React.Component <{ item_mapping: string[] }, {}> {
     render() {
         return <div className="table-container">
             <table className="table">
@@ -220,7 +227,7 @@ class ResultTable extends React.Component <{ connections: number[][] }, { natura
                         <tr>
                             {(() => {
                                 const arr = [];
-                                for (let i = 1; i <= this.props.connections.length; i++) {
+                                for (let i = 1; i <= this.props.item_mapping.length; i++) {
                                     arr.push(<td key={'res-header-' + i}>
                                         <MathComponent tex={String.raw`a_{${i}}`}/>
                                     </td>);
@@ -232,11 +239,10 @@ class ResultTable extends React.Component <{ connections: number[][] }, { natura
                         <tr>
                             {(() => {
                                 const arr = [];
-                                for (let i = 0; i < this.props.connections.length; i++) {
+                                for (let i = 0; i < this.props.item_mapping.length; i++) {
                                     arr.push(
                                         <td key={'res-content-' + i}>
-                                            {/*{this.state.naturalMapping[i]}*/}
-                                            ?
+                                            {this.props.item_mapping[i]}
                                         </td>);
                                 }
                                 return arr;
